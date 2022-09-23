@@ -13,11 +13,12 @@ class Stanza_pkg():
     def get_stanza_tokens(self):
         stanza_doc = self.doc
         stanza_tokens = {}
+        
         for i,sent in enumerate(stanza_doc.sentences):
             stanza_tokens[str(i+1)]= []
             for token in sent.tokens:
                 stanza_tokens[str(i+1)].append(token.text)
-        return stanza_tokens
+        return stanza_tokens, len(stanza_doc.sentences)
 
     def get_stanza_pos_tags(self):
         stanza_doc =self.doc

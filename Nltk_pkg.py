@@ -1,6 +1,5 @@
 import nltk
 from nltk.tokenize import word_tokenize
-from nltk.parse import CoreNLPParser
 from nltk.parse import malt
 from parse_tree import parse_tree
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -24,7 +23,7 @@ class NLTK_pkg():
             tokens[str(i+1)]=[]
             for token in word_tokenize(sent):
                 tokens[str(i+1)].append(token)
-        return tokens
+        return tokens , len(sents)
 
     def nltk_wordpunct_tokenize(self):
         sents = sent_tokenize(self.text)
@@ -74,10 +73,10 @@ class NLTK_pkg():
             tokens[str(i+1)]=[]
             for token in sentence["tokens"]:
                 tokens[str(i+1)].append(token["originalText"] or token["word"])
-        return tokens
+        return tokens ,len(parsed_data['sentences'])
 
     def get_nltk_pos_tags(self):
-        nltk_doc = word_tokenize(self.text)
+        #nltk_doc = word_tokenize(self.text)
         sents = sent_tokenize(self.text)
         nltk_pos_tags={}
         for index,sent in enumerate(sents):

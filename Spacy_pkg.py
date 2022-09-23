@@ -23,7 +23,7 @@ class Spacy_pkg:
             spacy_tokens[str(i+1)]=[]
             for token in sents[i]:
                 spacy_tokens[str(i+1)].append(token.text)
-        return spacy_tokens
+        return spacy_tokens,len(sents)
     def get_spacy_pos_tags(self):
         spacy_pos_tags={}
         sents = list(self.doc.sents)

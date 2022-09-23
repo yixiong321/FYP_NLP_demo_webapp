@@ -1,3 +1,4 @@
+import token
 import streamlit as st
 from Spacy_pkg import Spacy_pkg
 from Stanza_pkg import Stanza_pkg
@@ -28,7 +29,7 @@ def load_stanza_model(dir_name):
         nlp_stanza = stanza.Pipeline(lang='en',dir=dir_name,download_method=None,verbose=False)
         return nlp_stanza
     else:
-        print('Downloading Stanza models')
+        print('Downloading Stanza models for the first time...')
         os.mkdir('stanza_resources')
         nlp_stanza = stanza.Pipeline(lang='en',dir=dir_name)
         return nlp_stanza
@@ -69,22 +70,27 @@ def handle_init_packages(packages_options,text):
 #tokenizers,
 def handle_tokenization(spacy_pkg,nltk_pkg,stanza_pkg):
     data = {}
-    data['NLTK_word_tokenize']=nltk_pkg.nltk_word_tokenize()
-    data['SpaCyTokenizer'] = spacy_pkg.get_spacy_tokens()
-    data["StanzaTokenizer"] = stanza_pkg.get_stanza_tokens()
+    data['SpaCyTokenizer'] ,spacySentListLength = spacy_pkg.get_spacy_tokens()
+    data['NLTK_word_tokenize'],nltkSentListLength=nltk_pkg.nltk_word_tokenize()
+    data["StanzaTokenizer"], stanzaSentListLength = stanza_pkg.get_stanza_tokens()
     data['TreebankWordTokenizer(NLTK)'] = nltk_pkg.nltk_treeback_tokenize()
     data['wordpunct_tokenize(NLTK)'] = nltk_pkg.nltk_wordpunct_tokenize()
     data['WhitespaceTokenizer(NLTK)'] = nltk_pkg.nltk_whitespace_tokenize()
     data['RegexpTokenizer(NLTK)'] = nltk_pkg.nltk_regexp_tokenize()
-    data['CoreNLP_Tokenizer(NLTK)'] = nltk_pkg.get_nltk_tokens_corenlp()
+    data['CoreNLP_Tokenizer(NLTK)'], corenlpLength = nltk_pkg.get_nltk_tokens_corenlp()
     common = {}
-    for sentenceID in data['NLTK_word_tokenize'].keys():
+    
+    maxSentences=max(spacySentListLength,nltkSentListLength,stanzaSentListLength,corenlpLength)
+    
+    for sentenceID in range(1,maxSentences+1):
         for tokenizer in data.keys():
-            if tokenizer == 'NLTK_word_tokenize':
-                intersection = set(data[tokenizer][sentenceID])
+            if tokenizer == 'SpaCyTokenizer':
+                intersection = set(data[tokenizer][str(sentenceID)])
             else:
-                intersection = intersection.intersection(set(data[tokenizer][sentenceID]))
-        common[sentenceID] = list(intersection)
+                if str(sentenceID) in data[tokenizer].keys():
+                    intersection = intersection.intersection(set(data[tokenizer][str(sentenceID)]))
+        common[str(sentenceID)] = list(intersection)
+   
     # pass data to vis comp
     vz(data,True,common)
     return common
