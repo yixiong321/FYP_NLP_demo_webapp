@@ -9,7 +9,7 @@ NLP demo web app that demostrates the differences and similarities between NLTK,
 1. Create a new project folder
 2. Create a virtual environment for project in cmd via <code>python -m venv venv</code> and activate it
 3. Git clone the repository
-4. Download <a href="http://maltparser.org/dist/maltparser-1.9.2.zip">maltparser-1.9.2.zip</a> and unzip
+4. Download <a href="http://maltparser.org/dist/maltparser-1.9.2.zip">maltparser-1.9.2.zip</a> 
 5. Download pre-trained English model via <a href="https://www.maltparser.org/mco/english_parser/engmalt.poly-1.7.mco">engmalt.poly-1.7.mco</a>
 6. Download <a href="http://nlp.stanford.edu/software/stanford-corenlp-4.4.0.zip">StanfordCoreNLP</a> (project uses version 4.4.0)
 7. Move all downloaded files into FYP_NLP_demo_webapp folder and unzip all compressed files.
