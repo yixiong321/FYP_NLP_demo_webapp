@@ -14,8 +14,10 @@ from spacy.tokens import Doc
 class Spacy_pkg:
     def __init__(self,model):
         self.nlp_spacy = model
+
     def set_doc(self,text):
         self.doc = self.nlp_spacy(text)
+
     def get_spacy_tokens(self):
         spacy_tokens = {}
         sents = list(self.doc.sents)
@@ -24,6 +26,7 @@ class Spacy_pkg:
             for token in sents[i]:
                 spacy_tokens[str(i+1)].append(token.text)
         return spacy_tokens,len(sents)
+
     def get_spacy_pos_tags(self):
         spacy_pos_tags={}
         sents = list(self.doc.sents)
@@ -36,7 +39,8 @@ class Spacy_pkg:
     
     def convert_for_dep_parsing(self):
         data=[]
-        sent_end=0 # this is to mark the end of the sentence so that the arcs can be drawn starting from index 0
+        sent_end=0 
+        # this is to mark the end of the sentence so that the arcs can be drawn starting from index 0
         for sent in self.doc.sents:
             words=[]
             arcs=[]

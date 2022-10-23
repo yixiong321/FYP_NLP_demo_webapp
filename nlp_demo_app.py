@@ -10,12 +10,27 @@ import os
 import stanza
 from os.path import exists
 from nltk.parse import CoreNLPParser
+#from parse_tree import parse_tree
+#import random
+#from allennlp.predictors.predictor import Predictor
+#from nltk.tree import Tree
+#from nltk.tokenize import sent_tokenize
+
+
+#@st.cache(allow_output_mutation=True)
+#def load_allenNLP():
+#    predictor = Predictor.from_path("elmo-constituency-parser-2020.02.10.tar.gz",'constituency_parser')
+#    return predictor
+
 
 @st.cache(allow_output_mutation=True)
 def load_nltk_coreNLP(url):
-    parser = CoreNLPParser(url=url)
-    pos_tagger = CoreNLPParser(url=url, tagtype='pos')
-    return parser,pos_tagger
+    try:
+        parser = CoreNLPParser(url=url)
+        pos_tagger = CoreNLPParser(url=url, tagtype='pos')
+        return parser,pos_tagger
+    except:
+        st.warning("Failed to connect to CoreNLP server. Did you forget to start the CoreNLP server?")
 @st.cache(allow_output_mutation=True)
 def load_spacy_model(model_name):
     nlp_spacy = spacy.load(model_name)
@@ -63,6 +78,7 @@ def handle_init_packages(packages_options,text):
         nltk_corenlp,pos_tagger = load_nltk_coreNLP('http://localhost:9000')
         nltk_pkg = NLTK_pkg(nltk_corenlp,pos_tagger)
         nltk_pkg.set_text(text)
+    #allen_nlp = load_allenNLP()
     return nltk_pkg,spacy_pkg,stanza_pkg
 
 
@@ -79,28 +95,30 @@ def handle_tokenization(spacy_pkg,nltk_pkg,stanza_pkg):
     data['RegexpTokenizer(NLTK)'] = nltk_pkg.nltk_regexp_tokenize()
     data['CoreNLP_Tokenizer(NLTK)'], corenlpLength = nltk_pkg.get_nltk_tokens_corenlp()
     common = {}
+    try:
+        maxSentences=max(spacySentListLength,nltkSentListLength,stanzaSentListLength,corenlpLength)
+        
+        for sentenceID in range(1,maxSentences+1):
+            for tokenizer in data.keys():
+                if tokenizer == 'SpaCyTokenizer':
+                    intersection = set(data[tokenizer][str(sentenceID)])
+                else:
+                    if str(sentenceID) in data[tokenizer].keys():
+                        intersection = intersection.intersection(set(data[tokenizer][str(sentenceID)]))
+            common[str(sentenceID)] = list(intersection)
     
-    maxSentences=max(spacySentListLength,nltkSentListLength,stanzaSentListLength,corenlpLength)
-    
-    for sentenceID in range(1,maxSentences+1):
-        for tokenizer in data.keys():
-            if tokenizer == 'SpaCyTokenizer':
-                intersection = set(data[tokenizer][str(sentenceID)])
-            else:
-                if str(sentenceID) in data[tokenizer].keys():
-                    intersection = intersection.intersection(set(data[tokenizer][str(sentenceID)]))
-        common[str(sentenceID)] = list(intersection)
-   
-    # pass data to vis comp
-    vz(data,True,common)
-    return common
+        # pass data to vis comp
+        vz(data,True,common)
+        return common
+    except:
+        print("Unable to find the tokenize the text input, Please try with a differnt input.")
     #st.success('Tokenization results loaded!', icon="✅")
                
-def handle_pos_tagging(packages_options,spacy_pkg,nltk_pkg,stanza_pkg,common):
+def handle_pos_tagging(packages_options,spacy_pkg,nltk_pkg,stanza_pkg):
     data={}
     if 'NLTK' in packages_options:
         data['NLTK_POS_tags']=nltk_pkg.get_nltk_pos_tags()
-        data['NLTK_POS_tags (CoreNLP)']=nltk_pkg.get_nltk_pos_tags_corenlp()
+        #data['NLTK_POS_tags (CoreNLP)']=nltk_pkg.get_nltk_pos_tags_corenlp()
     if 'SpaCy' in packages_options:
         data['SpaCy_POS_tags']=spacy_pkg.get_spacy_pos_tags()
     if 'Stanza' in packages_options:
@@ -114,20 +132,35 @@ def handle_const_parsing_multiselect(packages_options,spacy_pkg,nltk_pkg,stanza_
         st.subheader('Spacy Benepar (Berkeley Neural Parser)')
         docs=spacy_pkg.visualise_spacy_benepar_const_parsing()
     if 'NLTK' in packages_options:
-        st.subheader('NLTK Stanford Corenlp')
+        st.subheader('NLTK CoreNLP Constituency Parser')
         docs=nltk_pkg.constituency_corenlp()
     if 'Stanza' in packages_options:
-        st.subheader('Stanza Constituency Parsing')
+        st.subheader('Stanza Constituency Parser')
         docs=stanza_pkg.visualise_stanza_consti_parsing()
-    #st.success('Constituency Parsing results loaded!', icon="✅")
+    
+    #st.subheader("AllenNLP constituency parser")
+    #for x in sent_tokenize(st.session_state.txt):
+    #    sents = allen_nlp.predict(x)
+    #    tree = Tree.fromstring(sents['trees'])
+    #    result=nltk_pkg.recursive_nltk_tree_traversal(tree)
+    #    key=str(random.randint(0, 100))+str(random.randint(0, 100))
+    #    parse_tree(result,style={ 'width': '100em', 'height': '20em','background':'white'},key=key)
+    
 
 
 def handle_dep_parsing_multiselect(packages_options,spacy_pkg,nltk_pkg,stanza_pkg):
     if 'NLTK' in packages_options:
         docs=nltk_pkg.get_maltparser_res()
+        core_doc = nltk_pkg.corenlp_dep_p()
+        #print(docs)
+        #print(core_doc)
         st.subheader('Dependency Parsing (NLTK-maltparser)')
         for index,doc in enumerate(docs):
             dep_parsing_component(doc,'dp_nltk_'+str(index))
+        st.subheader('Dependency Parsing (NLTK-CoreNLP)')
+        for index,doc in enumerate(core_doc):
+            dep_parsing_component(doc,'dp_nltk_corenlp'+str(index))
+        
 
     if 'SpaCy' in packages_options:
         docs=spacy_pkg.convert_for_dep_parsing()
@@ -140,14 +173,11 @@ def handle_dep_parsing_multiselect(packages_options,spacy_pkg,nltk_pkg,stanza_pk
         st.subheader('Dependency Parsing (Stanza)')
         for index,doc in enumerate(docs):
             dep_parsing_component(doc,'dp_stanza_'+str(index))
-    #st.success('Dependency Parsing results loaded!', icon="✅")
+    
 def form_callback():
-    #st.write(st.session_state.txt + 'ok')
     txt_length = len(st.session_state.txt)
     pkgs_length = len(st.session_state.packages_ms)
     proc_length = len(st.session_state.process_ms)
-    #tokenizers_length = len(st.session_state.token_ms)
-    #got_tokenization = "Tokenization" in st.session_state.process_ms
     if txt_length==0:
         st.warning('Input text cannot be empty!',icon="⚠️")
     if pkgs_length==0:
@@ -158,20 +188,11 @@ def form_callback():
         st.session_state.ready = True
     else:
         st.session_state.ready = False
-    #if got_tokenization and tokenizers_length==0:
-    #    st.warning('Please choose at least 1 tokenizer for tokenization!')
-    #if txt_length>0 and pkgs_length>0 and proc_length>0:
-    #    if got_tokenization and tokenizers_length>0:
-    #        st.session_state.ready=True
-    #    elif not got_tokenization:
-    #        st.session_state.ready=True
-    #    else:st.session_state.ready = False
 
 # Containers
 with inputs:
     st.title('NLP Demo app')
     with st.form(key='my-form'):
-        #might want to do input checking
         user_text=st.text_area('Input text to analyse:',"I can't finish this whole bottle of water.",key='txt')
         packages_options = st.multiselect(
         'Pick the libraries to use (One or more):',
@@ -183,26 +204,7 @@ with inputs:
             default=['Tokenization','POS-Tagging','Constituency Parsing','Dependency Parsing'],
             key = 'process_ms')
         submitted = st.form_submit_button("Submit",on_click=form_callback())
-        #tokenizers_to_use = st.multiselect('Pick tokenizers to use',[
-        #    'NLTK_word_tokenize',
-        #    'SpaCyTokenizer',
-        #    "StanzaTokenizer",
-        #    'TreebankWordTokenizer(NLTK)',
-        #    'wordpunct_tokenize(NLTK)',
-        #    'WhitespaceTokenizer(NLTK)',
-        #    'RegexpTokenizer(NLTK)',
-        #    'CoreNLP_Tokenizer(NLTK)',
-        #    ],
-        #    default=[
-        #    'NLTK_word_tokenize',
-        #    'SpaCyTokenizer',
-        #    "StanzaTokenizer",
-        #    'TreebankWordTokenizer(NLTK)',
-        #    'wordpunct_tokenize(NLTK)',
-        #    'WhitespaceTokenizer(NLTK)',
-        #    'RegexpTokenizer(NLTK)',
-        #    'CoreNLP_Tokenizer(NLTK)'],
-        #    key="token_ms") """
+
         
 
 
@@ -210,19 +212,15 @@ with result:
     if st.session_state.ready==True and submitted:
         nltk_pkg,spacy_pkg,stanza_pkg = handle_init_packages(packages_options,user_text)
         st.header('Results:')
-        #tokenization,pos_tagging,const_parsing,dep_parsing = st.tabs(["Tokenization", "POS-Tagging", "Constituency Parsing","Dependency Parsing"])
-        #with tokenization:
+
         if "Tokenization" in process_options:
-            #tokenizers_to_use,
-            common = handle_tokenization(spacy_pkg,nltk_pkg,stanza_pkg)
-    #with pos_tagging:
+            handle_tokenization(spacy_pkg,nltk_pkg,stanza_pkg)
+
         if 'POS-Tagging' in process_options:
-            handle_pos_tagging(packages_options,spacy_pkg,nltk_pkg,stanza_pkg,common)
-    #with const_parsing:
+            handle_pos_tagging(packages_options,spacy_pkg,nltk_pkg,stanza_pkg)
+    
         if 'Constituency Parsing' in process_options:
             handle_const_parsing_multiselect(packages_options,spacy_pkg,nltk_pkg,stanza_pkg)
-    #with dep_parsing:
+  
         if 'Dependency Parsing' in process_options:
             handle_dep_parsing_multiselect(packages_options,spacy_pkg,nltk_pkg,stanza_pkg)
-            #else:
-            #    st.warning('No results on Dependency Parsing.', icon="⚠️")

@@ -82,7 +82,7 @@ class NLTK_pkg():
         for index,sent in enumerate(sents):
             nltk_pos_tags[str(index+1)] = []
             txt = word_tokenize(sent)
-            nltk_pos_tags[str(index+1)] = nltk.pos_tag(txt,tagset='universal')
+            nltk_pos_tags[str(index+1)] = nltk.pos_tag(txt) #,tagset='universal'
         return nltk_pos_tags
 
     def get_nltk_pos_tags_corenlp(self):
@@ -94,6 +94,38 @@ class NLTK_pkg():
             for token in sentence['tokens']:
                 nltk_pos_tags_core[key].append((token["word"],token["pos"]))
         return nltk_pos_tags_core
+    def corenlp_dep_p(self):
+       
+        dep = self.parser.api_call(self.text,properties={"annotators": "tokenize,ssplit,pos,depparse"})
+        #print(dep)
+        nltk_dep_core = {}
+        sentences_list=[]
+        for index,sent in enumerate(dep['sentences']):
+            words=[]
+            arcs=[]
+            print(sent['tokens'])
+            for token in sent['tokens']:
+                 words.append({"text":token['word'],'tag':token['pos'],'id':token['index']-1})
+            for rela in sent['enhancedPlusPlusDependencies']:
+                if rela['dep']=='ROOT': # not indicating ROOT relation in dep structure explicitly
+                    print(True)
+                    continue               
+                if rela['dependent']<rela['governor']:       
+                    arcs.append(
+                        {"start":rela['dependent']-1,
+                        "end":rela['governor']-1,
+                        "label":rela['dep'],
+                        "dir":"left"})
+                elif rela['dependent']>rela['governor']:
+                    arcs.append(
+                        {"start":rela['dependent']-1,
+                        "end":rela['governor']-1,
+                        "label":rela['dep'],
+                        "dir":"right"})
+            sentences_list.append({'words':words,'arcs':arcs})
+        return sentences_list
+
+
 
     def get_maltparser_res(self):
         mp = malt.MaltParser(parser_dirname='maltparser-1.9.2',model_filename='engmalt.poly-1.7.mco') 
@@ -115,6 +147,7 @@ class NLTK_pkg():
             for nodes in node_list:
                 for x in range(1,max):
                     token = nodes[x]
+                    print(token)
                     words_input.append(
                         {"text":token['word'],
                         "tag":token['tag'],
